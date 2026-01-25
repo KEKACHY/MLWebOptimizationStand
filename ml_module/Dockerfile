@@ -1,5 +1,10 @@
-FROM python:3.12
+FROM python:3.12-slim
+
 WORKDIR /app
-COPY collect_data.py .
-RUN pip install requests prometheus-client pandas
-CMD ["python", "collect_data.py"]
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "train_lstm.py"]
