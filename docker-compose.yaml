@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  web-backend:
+    build:
+      context: ./GlossaryKEKACHY/backend
+    container_name: web-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+
+  web-frontend:
+    build:
+      context: ./GlossaryKEKACHY/frontend
+    container_name: web-frontend
+    environment:
+      PORT: '8080'
+      HOST: '0.0.0.0'
+    ports:
+      - "8080:8080"
+    depends_on:
+      - web-backend
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+
+  ml-module:
+    build: ./ml_module
+    container_name: ml-module
+    depends_on:
+      - prometheus
+    volumes:
+      - ./ml_module/data:/app/data 
+
+  autoscaler:
+    build: ./autoscaler
+    container_name: autoscaler
+    depends_on:
+      - web-backend
+      - prometheus
+      - ml-module
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
