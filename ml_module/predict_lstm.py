@@ -14,7 +14,7 @@ FEATURES = [
 df = pd.read_csv("data/data.csv")
 df = df.sort_values("timestamp")
 
-model = load_model("lstm_model")
+model = load_model("lstm_model.keras")
 scaler = joblib.load("scaler.pkl")
 
 last = df[FEATURES].tail(WINDOW).values

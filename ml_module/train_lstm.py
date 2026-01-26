@@ -36,7 +36,7 @@ model.fit(
     verbose=1
 )
 
-model.save("lstm_model")
+model.save("lstm_model.keras")
 joblib.dump(scaler, "scaler.pkl")
 
 print("LSTM model saved")
