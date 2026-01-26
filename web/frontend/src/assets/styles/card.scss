@@ -1,0 +1,58 @@
+.card {
+  width: 220px;
+  height: 150px;
+  perspective: 1000px;
+  margin: 12px;
+  cursor: pointer;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s ease;
+  transform-style: preserve-3d;
+}
+
+.card:hover .card-inner {
+  transform: rotateY(180deg) translateY(-4px);
+}
+
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  font-family: 'Nunito', 'Roboto', Arial, sans-serif;
+  text-align: center;
+}
+
+.card-front {
+  background: linear-gradient(135deg, #A8D5BA 0%, #CDE7F0 100%);
+  color: #25665e;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.card-back {
+  background-color: #FFF8F0;
+  color: #4A4A4A;
+  transform: rotateY(180deg);
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 15px;
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+
+  font-size: clamp(12px, 2vw, 16px);
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}

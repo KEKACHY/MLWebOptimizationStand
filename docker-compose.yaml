@@ -9,6 +9,14 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
 
   web-frontend:
     build:
@@ -22,16 +30,16 @@ services:
     depends_on:
       - web-backend
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
+  # prometheus:
+  #   image: prom/prometheus
+  #   container_name: prometheus
+  #   ports:
+  #     - "9090:9090"
 
-  ml-module:
-    build: ./ml_module
-    container_name: ml-module
-    depends_on:
-      - prometheus
-    volumes:
-      - ./ml_module/data:/app/data 
+  # ml-module:
+  #   build: ./ml_module
+  #   container_name: ml-module
+  #   depends_on:
+  #     - prometheus
+  #   volumes:
+  #     - ./ml_module/data:/app/data 
