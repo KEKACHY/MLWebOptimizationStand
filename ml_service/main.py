@@ -1,77 +1,72 @@
+import requests
+import xgboost as xgb
+import pandas as pd
+import asyncio
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-import threading
-import numpy as np
-from tensorflow.keras.models import load_model
+from pydantic import BaseModel
+from sklearn.preprocessing import StandardScaler
 import joblib
+import numpy as np
 
-from collect_metrics import metrics_buffer, collect_metrics, BUFFER_SIZE
+# Загрузим модель
+model = xgb.Booster()
+model.load_model('xgboost_model.json')
 
-app = FastAPI(title="ML Service LSTM")
+# Создаем FastAPI приложение
+app = FastAPI()
 
-# -------------------------------
-# Загружаем модель и scaler'ы
-# -------------------------------
-try:
-    model = load_model("lstm_model.keras")
-except Exception as e:
-    print(f"Ошибка загрузки модели: {e}")
-    model = None
+# Переменные для хранения предсказаний
+predicted_load = None
 
-try:
-    scaler_X = joblib.load("scaler_X.pkl")
-    scaler_y = joblib.load("scaler_y.pkl")
-except Exception as e:
-    print(f"Ошибка загрузки scaler'ов: {e}")
-    scaler_X = None
-    scaler_y = None
+# Нормализатор 
+scaler = joblib.load('scaler.pkl')
 
-# -------------------------------
-# Endpoint для предсказания
-# -------------------------------
-@app.get("/predict")
-def predict():
-    if model is None:
-        return JSONResponse(status_code=500, content={"error": "Модель не загружена"})
+# Функция для получения метрик с backend
+async def get_metrics():
+    global predicted_load
+    while True:
+        try:
+            # Запрос к вашему backend для получения актуальных метрик
+            response = requests.get('http://web-backend:8000/current_metrics')  # Укажите URL вашего backend
+            metrics = response.json()
 
-    if scaler_X is None or scaler_y is None:
-        return JSONResponse(status_code=500, content={"error": "Scaler'ы не загружены"})
+            # Преобразуем метрики в объект для использования в модели
+            metrics_data = {
+                'requests_per_sec': metrics['requests_per_sec'],
+                'cpu_percent': metrics['cpu_percent'],
+            }
+            print("Исходные данные", metrics_data)
 
-    if len(metrics_buffer) < BUFFER_SIZE:
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Недостаточно данных для предсказания"}
-        )
+            # Преобразуем данные в DataFrame
+            df = pd.DataFrame([metrics_data])
 
-    try:
-        # (BUFFER_SIZE, 4)
-        X_raw = np.array(metrics_buffer)
+            # Нормализуем данные
+            df_normalized = scaler.transform(df)
 
-        # масштабируем вход как при обучении
-        X_scaled = scaler_X.transform(X_raw)
-        X_scaled = X_scaled.reshape(1, BUFFER_SIZE, 4)
+            print("Нормализованные данные:", df_normalized)
 
-        # предсказание (нормализованное)
-        y_scaled = model.predict(X_scaled)
+            # Преобразуем в DMatrix для XGBoost
+            dmatrix = xgb.DMatrix(df_normalized)
 
-        # обратно в реальные requests/sec
-        y = scaler_y.inverse_transform(y_scaled)
+            # Получаем предсказания
+            prediction = model.predict(dmatrix)
+            predicted_load = prediction.tolist()
 
-        return {
-            "prediction_requests_per_sec": float(y[0, 0])
-        }
+        except Exception as e:
+            print(f"Ошибка получения метрик или предсказания: {e}")
 
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        # Пауза в 5 секунд перед следующим запросом
+        await asyncio.sleep(5)
 
-# -------------------------------
-# Сбор метрик
-# -------------------------------
-threading.Thread(
-    target=collect_metrics,
-    daemon=True
-).start()
+# Эндпоинт для получения текущих предсказаний
+@app.get("/current_prediction")
+def current_prediction():
+    if predicted_load is not None:
+        return {"predicted_load": predicted_load}
+    else:
+        return {"error": "Предсказание еще не доступно"}
 
-@app.get("/metrics_buffer")
-def get_metrics_buffer():
-    return {"metrics_buffer": metrics_buffer.copy()}
+# Запуск задачи получения метрик и предсказаний каждые 5 секунд
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(get_metrics())

@@ -109,12 +109,11 @@ def metrics():
     return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 prev_requests = None
-prev_errors = None
 prev_time = None
 
 @app.get("/current_metrics")
 def current_metrics():
-    global prev_requests, prev_errors, prev_time
+    global prev_requests, prev_time
     import time
     import psutil
     from prometheus_client import REGISTRY, generate_latest
@@ -133,26 +132,19 @@ def current_metrics():
     metrics_text = generate_latest(REGISTRY).decode("utf-8")
 
     total_requests = get_prometheus_value("request_count_total", metrics_text)
-    total_errors = get_prometheus_value("http_errors_total", metrics_text)
 
     if prev_requests is None:
         requests_per_sec = 0.0
-        errors_per_sec = 0.0
     else:
         interval = timestamp - prev_time
         requests_per_sec = (total_requests - prev_requests) / interval
-        errors_per_sec = (total_errors - prev_errors) / interval
 
     prev_requests = total_requests
-    prev_errors = total_errors
     prev_time = timestamp
 
     cpu_percent = psutil.cpu_percent(interval=None)
-    memory_bytes = psutil.virtual_memory().used
 
     return {
         "requests_per_sec": requests_per_sec,
         "cpu_percent": cpu_percent,
-        "memory_bytes": memory_bytes,
-        "errors_per_sec": errors_per_sec,
     }
