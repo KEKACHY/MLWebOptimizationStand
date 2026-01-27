@@ -6,7 +6,7 @@ import os
 
 class GlossaryUser(HttpUser):
     wait_time = between(1, 3)
-    host = "http://nginx-backend"
+    host = "http://localhost:80"
     @task
     def get_glossary(self):
         self.client.get("/glossaries/")
