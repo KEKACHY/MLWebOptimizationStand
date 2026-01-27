@@ -5,7 +5,7 @@ import time
 
 class GlossaryUser(HttpUser):
     wait_time = between(1, 3)
-
+    host = "http://nginx"
     @task
     def get_glossary(self):
         self.client.get("/glossaries/")

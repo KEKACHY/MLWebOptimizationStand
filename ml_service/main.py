@@ -27,7 +27,7 @@ async def get_metrics():
     while True:
         try:
             # Запрос к вашему backend для получения актуальных метрик
-            response = requests.get('http://web-backend:8000/current_metrics')  # Укажите URL вашего backend
+            response = requests.get('http://nginx/current_metrics')  # Укажите URL вашего backend
             metrics = response.json()
 
             # Преобразуем метрики в объект для использования в модели

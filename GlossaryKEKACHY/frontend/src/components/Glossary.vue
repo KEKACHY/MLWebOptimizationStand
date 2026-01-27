@@ -20,7 +20,7 @@ import Card from "./Card.vue";
 const cards = ref([]);
 
 onMounted(async () => {
-  cards.value = await fetch("http://localhost:8000/glossaries/")
+  cards.value = await fetch("http://nginx/glossaries/")
     .then(r => r.json());
 });
 </script>

@@ -17,10 +17,10 @@ const graph = ref(null);
 
 onMounted(async () => {
   try {
-    const glossaries = await fetch("http://localhost:8000/glossaries/")
+    const glossaries = await fetch("http://nginx/glossaries/")
       .then(r => r.json());
 
-    const relations = await fetch("http://localhost:8000/glossaries/relations/")
+    const relations = await fetch("http://nginx/glossaries/relations/")
       .then(r => r.json());
 
     const nodesMap = new Map();

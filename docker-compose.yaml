@@ -2,13 +2,15 @@ version: "3.9"
 
 services:
   web-backend:
-    build:
-      context: ./GlossaryKEKACHY/backend
-    container_name: web-backend
+    image: web-backend-image
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
+    deploy:
+      replicas: 1
+    networks:
+      - glossary-network
 
   ml-service:
     build:
@@ -18,6 +20,8 @@ services:
       - "9000:9000"
     depends_on:
       - web-backend
+    networks:
+      - glossary-network
 
   web-frontend:
     build:
@@ -30,9 +34,42 @@ services:
       - "8080:8080"
     depends_on:
       - web-backend
+    networks:
+      - glossary-network
 
   prometheus:
     image: prom/prometheus
     container_name: prometheus
     ports:
       - "9090:9090"
+    networks:
+      - glossary-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"  
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf 
+    depends_on:
+      - web-backend
+    networks:
+      - glossary-network
+
+  autoscaling:
+    build:
+      context: ./autoscaling
+    container_name: autoscaling
+    depends_on:
+      - ml-service
+      - web-backend
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - glossary-network
+
+networks:
+  glossary-network:
+    driver: bridge
