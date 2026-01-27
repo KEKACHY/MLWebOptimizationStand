@@ -2,10 +2,11 @@ from locust import HttpUser, task, between, events
 import gevent
 import random
 import time
+import os
 
 class GlossaryUser(HttpUser):
     wait_time = between(1, 3)
-    host = "http://nginx"
+    host = "http://nginx-backend"
     @task
     def get_glossary(self):
         self.client.get("/glossaries/")

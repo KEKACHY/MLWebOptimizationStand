@@ -10,6 +10,7 @@
 import { onMounted, ref } from "vue";
 import cytoscape from "cytoscape";
 import fcose from "cytoscape-fcose";
+import { apiUrl } from "../utils/apiBase";
 
 cytoscape.use(fcose);
 
@@ -17,10 +18,10 @@ const graph = ref(null);
 
 onMounted(async () => {
   try {
-    const glossaries = await fetch("http://nginx-backend/glossaries/")
+    const glossaries = await fetch(apiUrl("/glossaries/"))
       .then(r => r.json());
 
-    const relations = await fetch("http://nginx-backend/glossaries/relations/")
+    const relations = await fetch(apiUrl("/glossaries/relations/"))
       .then(r => r.json());
 
     const nodesMap = new Map();

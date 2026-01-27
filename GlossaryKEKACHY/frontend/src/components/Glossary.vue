@@ -16,11 +16,12 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import Card from "./Card.vue";
+import { apiUrl } from "../utils/apiBase";
 
 const cards = ref([]);
 
 onMounted(async () => {
-  cards.value = await fetch("http://nginx-backend/glossaries/")
+  cards.value = await fetch(apiUrl("/glossaries/"))
     .then(r => r.json());
 });
 </script>
