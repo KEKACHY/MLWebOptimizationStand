@@ -35,7 +35,6 @@ async def get_metrics():
                 'requests_per_sec': metrics['requests_per_sec'],
                 'cpu_percent': metrics['cpu_percent'],
             }
-            print("Исходные данные", metrics_data)
 
             # Преобразуем данные в DataFrame
             df = pd.DataFrame([metrics_data])
@@ -43,14 +42,14 @@ async def get_metrics():
             # Нормализуем данные
             df_normalized = scaler.transform(df)
 
-            print("Нормализованные данные:", df_normalized)
-
             # Преобразуем в DMatrix для XGBoost
             dmatrix = xgb.DMatrix(df_normalized)
 
             # Получаем предсказания
             prediction = model.predict(dmatrix)
-            predicted_load = prediction.tolist()
+
+            predicted_load = scaler.inverse_transform(prediction)
+            predicted_load = predicted_load.tolist()
 
         except Exception as e:
             print(f"Ошибка получения метрик или предсказания: {e}")

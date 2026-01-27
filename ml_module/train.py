@@ -8,7 +8,7 @@ processed_data = pd.read_csv('processed_data.csv')
 
 # Выбираем признаки и целевую переменную
 X = processed_data[['requests_per_sec', 'cpu_percent']]
-y = processed_data['requests_per_sec']
+y = processed_data[['requests_per_sec', 'cpu_percent']]
 
 # Разделим данные на обучающую и тестовую выборки
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)

@@ -26,7 +26,7 @@ data[['requests_per_sec', 'cpu_percent']] = scaler.fit_transform(
 
 # 5. Разделим данные на признаки и целевую переменную
 X = data[['requests_per_sec', 'cpu_percent']]
-y = data['requests_per_sec']
+y = data[['requests_per_sec', 'cpu_percent']]
 
 # 6. Разделим на обучающую и тестовую выборки
 from sklearn.model_selection import train_test_split
