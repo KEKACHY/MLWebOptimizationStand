@@ -47,7 +47,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx
+    container_name: nginx-backend
     ports:
       - "80:80"  
     volumes:
