@@ -3,10 +3,6 @@ version: "3.9"
 services:
   web-backend:
     image: web-backend-image
-    ports:
-      - "8000:8000"
-    environment:
-      - PORT=8000
     deploy:
       replicas: 1
     networks:

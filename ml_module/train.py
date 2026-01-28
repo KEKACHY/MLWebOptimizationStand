@@ -5,7 +5,7 @@ from sklearn.metrics import mean_absolute_error
 
 processed_data = pd.read_csv('processed_data.csv')
 
-# Выбир признаков и целевой переменной
+# Выбор признаков и целевой переменной
 X = processed_data[['requests_per_sec', 'cpu_percent']]
 y = processed_data[['requests_per_sec', 'cpu_percent']]
 
