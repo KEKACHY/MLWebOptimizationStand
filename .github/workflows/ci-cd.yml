@@ -26,17 +26,11 @@ jobs:
       - name: Validate Docker Compose config
         run: docker compose config
 
-      - name: Build backend image used by docker-compose.yaml
+      - name: Build backend image 
         run: docker build -t web-backend-image ./GlossaryKEKACHY/backend
 
-      - name: Build frontend image
-        run: docker build -t web-frontend-image ./GlossaryKEKACHY/frontend
-
-      - name: Build ML service image
-        run: docker build -t ml-service-image ./ml_service
-
-      - name: Build autoscaling image
-        run: docker build -t autoscaling-image ./autoscaling
+      - name: Build Compose services
+        run: docker compose build
 
       - name: Start stand with Docker Compose
         run: docker compose up -d
