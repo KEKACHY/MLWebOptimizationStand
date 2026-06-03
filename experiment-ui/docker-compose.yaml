@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  experiment-controller:
+    build:
+      context: ./controller-api
+    container_name: experiment-controller
+    ports:
+      - "7000:7000"
+    volumes:
+      - ./controller-api/results:/app/results
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  experiment-frontend:
+    build:
+      context: ./frontend
+    container_name: experiment-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - experiment-controller
+    restart: unless-stopped
