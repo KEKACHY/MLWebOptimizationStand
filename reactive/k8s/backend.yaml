@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reactive-backend
+  namespace: reactive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reactive-backend
+  template:
+    metadata:
+      labels:
+        app: reactive-backend
+    spec:
+      containers:
+        - name: reactive-backend
+          image: reactive-backend:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reactive-backend
+  namespace: reactive
+spec:
+  type: ClusterIP
+  selector:
+    app: reactive-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

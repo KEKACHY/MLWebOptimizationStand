@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reactive-nginx
+  namespace: reactive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reactive-nginx
+  template:
+    metadata:
+      labels:
+        app: reactive-nginx
+    spec:
+      containers:
+        - name: reactive-nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: reactive-nginx-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reactive-nginx
+  namespace: reactive
+spec:
+  type: LoadBalancer
+  selector:
+    app: reactive-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
