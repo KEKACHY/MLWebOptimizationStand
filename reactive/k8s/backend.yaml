@@ -44,3 +44,15 @@ spec:
     - name: http
       port: 8000
       targetPort: 8000
+apiVersion: v1
+kind: Service
+metadata:
+  name: reactive-backend-headless
+  namespace: reactive
+spec:
+  clusterIP: None
+  selector:
+    app: reactive-backend
+  ports:
+    - port: 8000
+      targetPort: 8000

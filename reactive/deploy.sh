@@ -1,7 +1,8 @@
 #!/bin/sh
-set -e
+set -eu
 
-CLUSTER_NAME="vkr-reactive"
+CLUSTER_NAME="reactive"
+KUBECONFIG_FILE="/tmp/k3d-${CLUSTER_NAME}-kubeconfig.yaml"
 
 echo "Installing tools inside deployer container..."
 
@@ -19,17 +20,32 @@ fi
 
 echo "Checking reactive Kubernetes cluster..."
 
-if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
-  echo "Creating reactive Kubernetes cluster..."
-
-  k3d cluster create "$CLUSTER_NAME" \
-    --agents 0 \
-    --port "8020:80@loadbalancer" \
-    --port "8081:8080@loadbalancer" \
-    --port "9091:9090@loadbalancer"
-else
-  echo "Reactive cluster already exists."
+if k3d cluster list | grep -q "$CLUSTER_NAME"; then
+  echo "Deleting old reactive Kubernetes cluster..."
+  k3d cluster delete "$CLUSTER_NAME"
 fi
+
+echo "Creating reactive Kubernetes cluster..."
+
+k3d cluster create "$CLUSTER_NAME" \
+  --agents 0 \
+  --port "8020:80@loadbalancer" \
+  --port "8081:8080@loadbalancer" \
+  --port "9091:9090@loadbalancer"
+
+echo "Preparing kubeconfig..."
+
+k3d kubeconfig get "$CLUSTER_NAME" > "$KUBECONFIG_FILE"
+export KUBECONFIG="$KUBECONFIG_FILE"
+
+echo "Waiting for Kubernetes API..."
+
+until kubectl get nodes >/dev/null 2>&1; do
+  echo "Waiting for cluster API..."
+  sleep 2
+done
+
+kubectl get nodes
 
 echo "Building reactive images..."
 
@@ -43,7 +59,37 @@ k3d image import reactive-frontend:local -c "$CLUSTER_NAME"
 
 echo "Applying Kubernetes manifests..."
 
-kubectl apply -f ./k8s/
+kubectl apply -f k8s/namespace.yaml --validate=false
+
+echo "Waiting for namespace reactive..."
+
+until kubectl get namespace reactive >/dev/null 2>&1; do
+  echo "Waiting for namespace..."
+  sleep 1
+done
+
+kubectl apply -f k8s/nginx-config.yaml --validate=false
+kubectl apply -f k8s/backend.yaml --validate=false
+kubectl apply -f k8s/frontend.yaml --validate=false
+kubectl apply -f k8s/prometheus.yaml --validate=false
+kubectl apply -f k8s/hpa.yaml --validate=false
+kubectl apply -f k8s/nginx.yaml --validate=false
+
+echo "Waiting for reactive backend rollout..."
+
+kubectl rollout status deployment/reactive-backend -n reactive --timeout=180s
+
+echo "Waiting for reactive frontend rollout..."
+
+kubectl rollout status deployment/reactive-frontend -n reactive --timeout=180s
+
+echo "Waiting for reactive prometheus rollout..."
+
+kubectl rollout status deployment/reactive-prometheus -n reactive --timeout=180s
+
+echo "Waiting for reactive nginx rollout..."
+
+kubectl rollout status deployment/reactive-nginx -n reactive --timeout=180s
 
 echo "Reactive deployment status:"
 kubectl get all -n reactive

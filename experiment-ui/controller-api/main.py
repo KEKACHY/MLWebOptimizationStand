@@ -41,13 +41,15 @@ SCENARIOS = {
         "description": "Базовый сценарий без автомасштабирования. Backend работает в одной фиксированной реплике.",
         "target": "http://host.docker.internal:80",
         "replicas": 1,
+        "prometheus_url": "http://host.docker.internal:9090",
     },
     "reactive": {
         "title": "Reactive",
-        "available": False,
-        "description": "Реактивное автомасштабирование пока не настроено.",
-        "target": None,
-        "replicas": None,
+        "available": True,
+        "description": "Реактивное горизонтальное масштабирование backend через Kubernetes HPA.",
+        "target": "http://host.docker.internal:8020",  
+        "replicas": "1-5",                             
+        "prometheus_url": "http://host.docker.internal:9091", 
     },
     "predictive": {
         "title": "Predictive",
@@ -191,6 +193,62 @@ def read_history(prefix: Path):
     return result[-120:]
 
 
+import urllib.parse
+import urllib.request
+import json
+
+def query_prometheus(prometheus_url: str, query: str):
+    """
+    Запрашивает Prometheus и возвращает результат первой метрики.
+    """
+    encoded_query = urllib.parse.urlencode({"query": query})
+    url = f"{prometheus_url}/api/v1/query?{encoded_query}"
+
+    try:
+        with urllib.request.urlopen(url, timeout=2) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        results = payload.get("data", {}).get("result", [])
+
+        if not results:
+            return None
+
+        return float(results[0]["value"][1])
+
+    except Exception:
+        return None
+
+
+def get_backend_replicas(scenario_name: str):
+    """
+    Возвращает количество backend-реплик для указанного сценария.
+    """
+    if scenario_name not in SCENARIOS:
+        return None
+
+    # Для baseline всегда 1
+    if scenario_name == "baseline":
+        return 1
+
+    # Для reactive читаем количество из Prometheus
+    if scenario_name == "reactive":
+        prometheus_url = SCENARIOS["reactive"].get("prometheus_url")
+        if not prometheus_url:
+            return None
+
+        replicas = query_prometheus(
+            prometheus_url,
+            'count(up{job="reactive-backend"} == 1)'
+        )
+
+        if replicas is None:
+            return None
+
+        return int(replicas)
+
+    return None
+
+
 @app.get("/api/scenarios")
 def get_scenarios():
     return {
@@ -276,18 +334,23 @@ def get_status():
 
 
 @app.get("/api/metrics")
-def get_metrics():
+def get_metrics(scenario: Optional[str] = None):
     prefix = get_csv_prefix()
+    selected_scenario = scenario or current_scenario or "baseline"
+
+    replicas = get_backend_replicas(selected_scenario)
 
     if prefix is None:
         return {
             "stats": None,
             "history": [],
+            "backend_replicas": replicas,
         }
 
     return {
         "stats": read_stats(prefix),
         "history": read_history(prefix),
+        "backend_replicas": replicas,
     }
 
 
