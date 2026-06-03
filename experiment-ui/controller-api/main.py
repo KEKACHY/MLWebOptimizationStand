@@ -2,6 +2,7 @@ import csv
 import shutil
 import signal
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -24,6 +25,7 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "results"
 LOCUST_FILE = BASE_DIR / "load" / "locustfile.py"
+MAX_RUNS_PER_SCENARIO = 5
 
 RESULTS_DIR.mkdir(exist_ok=True)
 
@@ -86,6 +88,27 @@ def get_csv_prefix() -> Optional[Path]:
 
     return current_run_dir / "result"
 
+def cleanup_old_runs(scenario_name: str):
+    """
+    Оставляет только последние MAX_RUNS_PER_SCENARIO запусков
+    для выбранного сценария. Старые папки удаляются.
+    """
+    scenario_dir = RESULTS_DIR / scenario_name
+
+    if not scenario_dir.exists():
+        return
+
+    run_dirs = [
+        path for path in scenario_dir.iterdir()
+        if path.is_dir()
+    ]
+
+    run_dirs.sort(key=lambda path: path.name, reverse=True)
+
+    old_runs = run_dirs[MAX_RUNS_PER_SCENARIO:]
+
+    for old_run in old_runs:
+        shutil.rmtree(old_run, ignore_errors=True)
 
 def read_stats(prefix: Path):
     stats_file = Path(str(prefix) + "_stats.csv")
@@ -195,6 +218,8 @@ def start_load(scenario_name: str):
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_run_dir = RESULTS_DIR / scenario_name / run_id
     current_run_dir.mkdir(parents=True, exist_ok=True)
+    
+    cleanup_old_runs(scenario_name)
 
     csv_prefix = current_run_dir / "result"
     logfile = current_run_dir / "locust.log"

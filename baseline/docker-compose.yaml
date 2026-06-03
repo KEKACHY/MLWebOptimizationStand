@@ -47,6 +47,10 @@ services:
       - baseline-backend
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=6h"
+      - "--storage.tsdb.retention.size=1GB"
     networks:
       - baseline-network
     ports:

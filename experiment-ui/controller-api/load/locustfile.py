@@ -2,7 +2,7 @@ from locust import HttpUser, task, between, LoadTestShape
 
 
 class GlossaryUser(HttpUser):
-    wait_time = between(1, 3)
+    wait_time = between(0.1, 0.5)
 
     @task
     def get_glossary(self):
@@ -22,8 +22,8 @@ class CyclicLoadShape(LoadTestShape):
     baseline / reactive / predictive.
     """
 
-    min_users = 5
-    max_users = 50
+    min_users = 30
+    max_users = 150
 
     ramp_up_time = 360      # 6 минуты рост нагрузки
     hold_time = 240         # 4 минуты удержание

@@ -25,7 +25,7 @@
         <div class="scenario-title">
           <h2>{{ scenario.title }}</h2>
           <span v-if="scenario.available" class="badge ready">Доступен</span>
-          <span v-else class="badge disabled">Не настроен</span>
+          <span v-else class="badge disabled">Не доступен</span>
         </div>
 
         <p>{{ scenario.description }}</p>
@@ -40,7 +40,7 @@
           <strong>{{ scenarios[selectedScenario]?.title || "—" }}</strong>
         </p>
         <p class="profile">
-          Профиль нагрузки: циклический рост до 50 пользователей, удержание,
+          Профиль нагрузки: циклический рост до 150 пользователей, удержание,
           спад и повтор.
         </p>
       </div>
@@ -68,7 +68,7 @@
 
       <div class="metric-card">
         <span>Throughput</span>
-        <strong>{{ metricValue("rps") }} RPS</strong>
+        <strong>{{ metricValue("rps") }} TPS</strong>
       </div>
 
       <div class="metric-card">
@@ -232,11 +232,11 @@ function renderCharts() {
 
     throughputChartInstance.setOption({
       tooltip: { trigger: "axis" },
-      legend: { data: ["RPS"] },
+      legend: { data: ["TPS"] },
       xAxis: { type: "category", data: labels },
       yAxis: { type: "value" },
       series: [
-        { name: "RPS", type: "line", smooth: true, data: rps }
+        { name: "TPS", type: "line", smooth: true, data: rps }
       ]
     });
   }
