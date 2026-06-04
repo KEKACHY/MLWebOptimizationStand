@@ -83,7 +83,7 @@
 
       <div class="metric-card">
         <span>Backend-реплики</span>
-        <strong>1</strong>
+        <strong>{{ backendReplicas }}</strong>
       </div>
     </section>
 
@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, nextTick } from "vue";
+import { computed, onMounted, onUnmounted, ref, nextTick } from "vue";
 import * as echarts from "echarts";
 
 const apiBase = `http://${window.location.hostname}:7000`;
@@ -155,6 +155,12 @@ function metricValue(key) {
   return value;
 }
 
+const backendReplicas = computed(() => {
+  const value = metrics.value.backend_replicas;
+  if (value === undefined || value === null) return "—";
+  return value;
+});
+
 async function fetchScenarios() {
   const response = await fetch(`${apiBase}/api/scenarios`);
   const data = await response.json();
@@ -172,11 +178,9 @@ async function fetchStatus() {
 }
 
 async function fetchMetrics() {
-  const response = await fetch(`${apiBase}/api/metrics`);
+  const response = await fetch(`${apiBase}/api/metrics?scenario=${selectedScenario.value}`);
   const data = await response.json();
-
   metrics.value = data;
-
   await nextTick();
   renderCharts();
 }

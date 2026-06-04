@@ -57,10 +57,11 @@ metadata:
   name: reactive-prometheus
   namespace: reactive
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: reactive-prometheus
   ports:
     - name: http
       port: 9090
       targetPort: 9090
+      nodePort: 30091

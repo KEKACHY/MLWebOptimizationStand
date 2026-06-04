@@ -1,8 +1,10 @@
 import csv
+import json
 import shutil
 import signal
 import subprocess
-import time
+import urllib.parse
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -21,6 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "results"
@@ -47,9 +50,9 @@ SCENARIOS = {
         "title": "Reactive",
         "available": True,
         "description": "Реактивное горизонтальное масштабирование backend через Kubernetes HPA.",
-        "target": "http://host.docker.internal:8020",  
-        "replicas": "1-5",                             
-        "prometheus_url": "http://host.docker.internal:9091", 
+        "target": "http://host.docker.internal:8020",
+        "replicas": "1-5",
+        "prometheus_url": "http://host.docker.internal:9091",
     },
     "predictive": {
         "title": "Predictive",
@@ -57,6 +60,7 @@ SCENARIOS = {
         "description": "Предиктивное автомасштабирование пока не настроено.",
         "target": None,
         "replicas": None,
+        "prometheus_url": None,
     },
 }
 
@@ -90,11 +94,8 @@ def get_csv_prefix() -> Optional[Path]:
 
     return current_run_dir / "result"
 
+
 def cleanup_old_runs(scenario_name: str):
-    """
-    Оставляет только последние MAX_RUNS_PER_SCENARIO запусков
-    для выбранного сценария. Старые папки удаляются.
-    """
     scenario_dir = RESULTS_DIR / scenario_name
 
     if not scenario_dir.exists():
@@ -111,6 +112,7 @@ def cleanup_old_runs(scenario_name: str):
 
     for old_run in old_runs:
         shutil.rmtree(old_run, ignore_errors=True)
+
 
 def read_stats(prefix: Path):
     stats_file = Path(str(prefix) + "_stats.csv")
@@ -193,14 +195,7 @@ def read_history(prefix: Path):
     return result[-120:]
 
 
-import urllib.parse
-import urllib.request
-import json
-
 def query_prometheus(prometheus_url: str, query: str):
-    """
-    Запрашивает Prometheus и возвращает результат первой метрики.
-    """
     encoded_query = urllib.parse.urlencode({"query": query})
     url = f"{prometheus_url}/api/v1/query?{encoded_query}"
 
@@ -219,20 +214,16 @@ def query_prometheus(prometheus_url: str, query: str):
         return None
 
 
-def get_backend_replicas(scenario_name: str):
-    """
-    Возвращает количество backend-реплик для указанного сценария.
-    """
+def get_backend_replicas(scenario_name: Optional[str]):
     if scenario_name not in SCENARIOS:
         return None
 
-    # Для baseline всегда 1
     if scenario_name == "baseline":
         return 1
 
-    # Для reactive читаем количество из Prometheus
     if scenario_name == "reactive":
         prometheus_url = SCENARIOS["reactive"].get("prometheus_url")
+
         if not prometheus_url:
             return None
 
@@ -270,13 +261,16 @@ def start_load(scenario_name: str):
     if not scenario["available"]:
         raise HTTPException(status_code=400, detail="Scenario is not available yet")
 
+    if scenario["target"] is None:
+        raise HTTPException(status_code=400, detail="Scenario target is not configured")
+
     if is_process_running():
         stop_current_process()
 
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_run_dir = RESULTS_DIR / scenario_name / run_id
     current_run_dir.mkdir(parents=True, exist_ok=True)
-    
+
     cleanup_old_runs(scenario_name)
 
     csv_prefix = current_run_dir / "result"

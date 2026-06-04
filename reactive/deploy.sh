@@ -29,9 +29,9 @@ echo "Creating reactive Kubernetes cluster..."
 
 k3d cluster create "$CLUSTER_NAME" \
   --agents 0 \
-  --port "8020:80@loadbalancer" \
-  --port "8081:8080@loadbalancer" \
-  --port "9091:9090@loadbalancer"
+  --port "8020:30080@server:0" \
+  --port "8081:30081@server:0" \
+  --port "9091:30091@server:0"
 
 echo "Preparing kubeconfig..."
 
@@ -90,6 +90,20 @@ kubectl rollout status deployment/reactive-prometheus -n reactive --timeout=180s
 echo "Waiting for reactive nginx rollout..."
 
 kubectl rollout status deployment/reactive-nginx -n reactive --timeout=180s
+
+echo "Validating required Services and Endpoints..."
+
+kubectl get svc reactive-backend reactive-backend-headless reactive-nginx reactive-frontend reactive-prometheus -n reactive
+
+kubectl get endpoints reactive-backend reactive-backend-headless -n reactive
+
+echo "Checking backend through nginx inside cluster..."
+
+kubectl run curl-check-nginx \
+  -n reactive \
+  --image=curlimages/curl:latest \
+  --rm -i --restart=Never \
+  -- curl -f http://reactive-nginx/metrics
 
 echo "Reactive deployment status:"
 kubectl get all -n reactive
