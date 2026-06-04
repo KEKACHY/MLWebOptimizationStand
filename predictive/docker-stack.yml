@@ -1,0 +1,138 @@
+version: "3.8"
+
+services:
+  web-backend:
+    image: mlweb/predictive-backend:local
+    networks:
+      - predictive-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  web-frontend:
+    image: mlweb/predictive-frontend:local
+    networks:
+      - predictive-net
+    ports:
+      - target: 8080
+        published: 8082
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  nginx:
+    image: nginx:1.27-alpine
+    networks:
+      - predictive-net
+    ports:
+      - target: 80
+        published: 8030
+        protocol: tcp
+        mode: ingress
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    networks:
+      - predictive-net
+    ports:
+      - target: 9090
+        published: 9092
+        protocol: tcp
+        mode: ingress
+    configs:
+      - source: prometheus_yml
+        target: /etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=6h"
+      - "--storage.tsdb.retention.size=1GB"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  ml-service:
+    image: mlweb/predictive-ml:local
+    networks:
+      - predictive-net
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  autoscaling:
+    image: mlweb/predictive-autoscaling:local
+    networks:
+      - predictive-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      ML_URL: http://ml-service:9000/current_prediction
+      BACKEND_SERVICE_NAME: predictive_web-backend
+      MIN_REPLICAS: "1"
+      MAX_REPLICAS: "5"
+      RPS_PER_REPLICA: "18"
+      POLL_SEC: "10"
+      UP_COOLDOWN_SEC: "20"
+      DOWN_COOLDOWN_SEC: "60"
+      DOWN_STABLE_WINDOWS: "3"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  predictive-net:
+    driver: overlay
+    attachable: true
+
+configs:
+  nginx_conf:
+    file: ./nginx/nginx.conf
+
+  prometheus_yml:
+    file: ./monitoring/prometheus.yml

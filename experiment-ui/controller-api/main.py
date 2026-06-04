@@ -56,11 +56,11 @@ SCENARIOS = {
     },
     "predictive": {
         "title": "Predictive",
-        "available": False,
-        "description": "Предиктивное автомасштабирование пока не настроено.",
-        "target": None,
-        "replicas": None,
-        "prometheus_url": None,
+        "available": True,
+        "description": "Предиктивное автомасштабирование через Docker Swarm.",
+        "target": "http://host.docker.internal:8030",        
+        "replicas": "1-5",                                  
+        "prometheus_url": "http://host.docker.internal:9092", 
     },
 }
 
@@ -235,6 +235,15 @@ def get_backend_replicas(scenario_name: Optional[str]):
         if replicas is None:
             return None
 
+        return int(replicas)
+    
+    if scenario_name == "predictive":
+        prometheus_url = SCENARIOS["predictive"].get("prometheus_url")
+        if not prometheus_url:
+            return None
+        replicas = query_prometheus(prometheus_url, 'count(up{job="predictive-backend"} == 1)')
+        if replicas is None:
+            return None
         return int(replicas)
 
     return None
