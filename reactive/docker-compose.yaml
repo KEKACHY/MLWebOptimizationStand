@@ -5,6 +5,7 @@ services:
     image: docker:27-cli
     container_name: reactive-deployer
     privileged: true
+    network_mode: host
     working_dir: /workspace
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
